@@ -2,11 +2,11 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
-	"order_service/cmd/handler"
-	"order_service/middleware"
+	"payment_service/cmd/handler"
+	"payment_service/middleware"
 )
 
-func SetupRoutes(router *gin.Engine, orderHandler handler.OrderHandler, jwtSecret string) {
+func SetupRoutes(router *gin.Engine, paymentHandler handler.PaymentHandler, jwtSecret string) {
 	router.Use(middleware.RequestLogger())
 	authMiddleware := middleware.AuthMiddleware(jwtSecret)
 	router.Use(authMiddleware)

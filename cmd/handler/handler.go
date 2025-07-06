@@ -1,13 +1,13 @@
 package handler
 
-import "order_service/cmd/usecase"
+import "payment_service/cmd/usecase"
 
-type OrderHandler struct {
-	OrderUseCase usecase.OrderUseCase
+type PaymentHandler struct {
+	PaymentUseCase usecase.PaymentUseCase
 }
 
-func NewHandler(orderUseCase usecase.OrderUseCase) *OrderHandler {
-	return &OrderHandler{
-		OrderUseCase: orderUseCase,
+func NewHandler(paymentUseCase usecase.PaymentUseCase) *PaymentHandler {
+	return &PaymentHandler{
+		PaymentUseCase: paymentUseCase,
 	}
 }

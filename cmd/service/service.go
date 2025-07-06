@@ -1,13 +1,13 @@
 package service
 
-import "order_service/cmd/repository"
+import "payment_service/cmd/repository"
 
-type OrderService struct {
-	OrderRepository repository.OrderRepository
+type PaymentService struct {
+	PaymentRepository repository.PaymentRepository
 }
 
-func NewOrderService(orderRepo repository.OrderRepository) *OrderService {
-	return &OrderService{
-		OrderRepository: orderRepo,
+func NewPaymentService(paymentRepo repository.PaymentRepository) *PaymentService {
+	return &PaymentService{
+		PaymentRepository: paymentRepo,
 	}
 }

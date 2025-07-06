@@ -5,13 +5,13 @@ import (
 	"gorm.io/gorm"
 )
 
-type OrderRepository struct {
+type PaymentRepository struct {
 	Database *gorm.DB
 	Redis    *redis.Client
 }
 
-func NewOrderRepository(db *gorm.DB, redisClient *redis.Client) *OrderRepository {
-	return &OrderRepository{
+func NewPaymentRepository(db *gorm.DB, redisClient *redis.Client) *PaymentRepository {
+	return &PaymentRepository{
 		Database: db,
 		Redis:    redisClient,
 	}

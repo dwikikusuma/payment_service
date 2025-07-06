@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"log"
-	"order_service/config"
+	"payment_service/config"
 )
 
 func InitDB(cfg *config.Config) *gorm.DB {

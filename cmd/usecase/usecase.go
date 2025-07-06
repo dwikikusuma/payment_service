@@ -1,13 +1,13 @@
 package usecase
 
-import "order_service/cmd/service"
+import "payment_service/cmd/service"
 
-type OrderUseCase struct {
-	OrderService service.OrderService
+type PaymentUseCase struct {
+	PaymentService service.PaymentService
 }
 
-func NewOrderUseCase(orderService service.OrderService) *OrderUseCase {
-	return &OrderUseCase{
-		OrderService: orderService,
+func NewPaymentUseCase(paymentService service.PaymentService) *PaymentUseCase {
+	return &PaymentUseCase{
+		PaymentService: paymentService,
 	}
 }

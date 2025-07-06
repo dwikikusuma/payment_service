@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/go-redis/redis/v8"
 	"log"
-	"order_service/config"
+	"payment_service/config"
 )
 
 func InitRedis(cfg *config.Config) *redis.Client {

@@ -3,14 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"order_service/cmd/handler"
-	"order_service/cmd/repository"
-	"order_service/cmd/resource"
-	"order_service/cmd/service"
-	"order_service/cmd/usecase"
-	"order_service/config"
-	"order_service/infra/log"
-	"order_service/routes"
+	"payment_service/cmd/handler"
+	"payment_service/cmd/repository"
+	"payment_service/cmd/resource"
+	"payment_service/cmd/service"
+	"payment_service/cmd/usecase"
+	"payment_service/config"
+	"payment_service/infra/log"
+	"payment_service/routes"
 )
 
 func main() {
@@ -24,15 +24,15 @@ func main() {
 	db := resource.InitDB(&cfg)
 	redis := resource.InitRedis(&cfg)
 
-	orderRepo := repository.NewOrderRepository(db, redis)
-	orderService := service.NewOrderService(*orderRepo)
-	orderUseCase := usecase.NewOrderUseCase(*orderService)
-	orderHandler := handler.NewHandler(*orderUseCase)
+	paymentRepo := repository.NewPaymentRepository(db, redis)
+	paymentService := service.NewPaymentService(*paymentRepo)
+	paymentUseCase := usecase.NewPaymentUseCase(*paymentService)
+	paymentHandler := handler.NewHandler(*paymentUseCase)
 
 	fmt.Println("Configuration loaded successfully:", cfg)
 
 	router := gin.Default()
-	routes.SetupRoutes(router, *orderHandler, "my")
+	routes.SetupRoutes(router, *paymentHandler, "my")
 	_ = router.Run(":" + cfg.App.Port)
 	fmt.Println("Server running on port:", cfg.App.Port)
 }
