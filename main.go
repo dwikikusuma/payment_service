@@ -9,7 +9,9 @@ import (
 	"payment_service/cmd/service"
 	"payment_service/cmd/usecase"
 	"payment_service/config"
+	"payment_service/infra/constant"
 	"payment_service/infra/log"
+	internalKafka "payment_service/kafka"
 	"payment_service/routes"
 )
 
@@ -23,16 +25,20 @@ func main() {
 
 	db := resource.InitDB(&cfg)
 	redis := resource.InitRedis(&cfg)
+	writer := internalKafka.NewWriter(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicPaymentSuccess])
+
+	constant.MapStatusFromDB(db)
 
 	paymentRepo := repository.NewPaymentRepository(db, redis)
-	paymentService := service.NewPaymentService(*paymentRepo)
-	paymentUseCase := usecase.NewPaymentUseCase(*paymentService)
-	paymentHandler := handler.NewHandler(*paymentUseCase)
+	paymentPublisher := repository.NewKafkaEventPublisher(writer)
+	paymentService := service.NewPaymentService(paymentRepo, paymentPublisher)
+	paymentUseCase := usecase.NewPaymentUseCase(paymentService)
+	paymentHandler := handler.NewHandler(paymentUseCase)
 
 	fmt.Println("Configuration loaded successfully:", cfg)
 
 	router := gin.Default()
-	routes.SetupRoutes(router, *paymentHandler, "my")
+	routes.SetupRoutes(router, paymentHandler, "my")
 	_ = router.Run(":" + cfg.App.Port)
 	fmt.Println("Server running on port:", cfg.App.Port)
 }

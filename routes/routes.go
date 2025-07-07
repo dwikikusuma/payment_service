@@ -8,6 +8,5 @@ import (
 
 func SetupRoutes(router *gin.Engine, paymentHandler handler.PaymentHandler, jwtSecret string) {
 	router.Use(middleware.RequestLogger())
-	authMiddleware := middleware.AuthMiddleware(jwtSecret)
-	router.Use(authMiddleware)
+	router.POST("/v1/payment/webhook", paymentHandler.HandleXenditWebhook)
 }

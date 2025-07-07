@@ -8,6 +8,7 @@ import (
 )
 
 type PaymentEventPublisher interface {
+	PublishPaymentSuccess(orderID int64) error
 }
 
 type KafkaEventPublisher struct {
