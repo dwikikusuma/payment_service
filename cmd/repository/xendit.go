@@ -22,8 +22,10 @@ type xenditClient struct {
 	APISecret string
 }
 
-func NewXenditClient() XenditClient {
-	return &xenditClient{}
+func NewXenditClient(apiSecret string) XenditClient {
+	return &xenditClient{
+		APISecret: apiSecret,
+	}
 }
 
 func (c *xenditClient) CrateInvoice(ctx context.Context, param models.XenditInvoiceRequest) (models.XenditInvoiceResponse, error) {

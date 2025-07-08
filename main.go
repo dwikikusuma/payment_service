@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 	"payment_service/cmd/handler"
 	"payment_service/cmd/repository"
 	"payment_service/cmd/resource"
@@ -12,6 +14,7 @@ import (
 	"payment_service/infra/constant"
 	"payment_service/infra/log"
 	internalKafka "payment_service/kafka"
+	"payment_service/models"
 	"payment_service/routes"
 )
 
@@ -21,6 +24,7 @@ func main() {
 		config.WithConfigFile("config"),
 		config.WithConfigType("yaml"),
 	)
+	fmt.Println("Configuration loaded successfully:", cfg)
 	log.SetupLogger()
 
 	db := resource.InitDB(&cfg)
@@ -35,8 +39,19 @@ func main() {
 	paymentUseCase := usecase.NewPaymentUseCase(paymentService)
 	paymentHandler := handler.NewHandler(paymentUseCase)
 
-	fmt.Println("Configuration loaded successfully:", cfg)
+	xenditRepository := repository.NewXenditClient(cfg.PGAConfig.ApiKey)
+	xenditService := service.NewXenditService(paymentRepo, xenditRepository)
+	xenditUseCase := usecase.NewXenditUseCase(xenditService)
 
+	internalKafka.StartKafkaConsumer(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicOrderCreated],
+		func(event models.OrderCreatedEvent) {
+			if err := xenditUseCase.CreateInvoice(context.Background(), event); err != nil {
+				log.Logger.WithFields(logrus.Fields{
+					"message": "failed to handle order created event",
+					"err":     err.Error(),
+				}).Error("xenditUseCase.CreateInvoice(context.Background(), event)")
+			}
+		})
 	router := gin.Default()
 	routes.SetupRoutes(router, paymentHandler, "my")
 	_ = router.Run(":" + cfg.App.Port)
