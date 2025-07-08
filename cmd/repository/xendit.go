@@ -14,6 +14,8 @@ import (
 )
 
 type XenditClient interface {
+	CrateInvoice(ctx context.Context, param models.XenditInvoiceRequest) (models.XenditInvoiceResponse, error)
+	CheckInvoiceStatus(ctx context.Context, externalID string) (string, error)
 }
 
 type xenditClient struct {

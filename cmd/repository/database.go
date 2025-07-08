@@ -31,3 +31,7 @@ func (r *paymentRepository) WithTransaction(ctx context.Context, fn func(tx *gor
 
 	return tx.Commit().Error
 }
+
+func (r *paymentRepository) SavePayment(ctx context.Context, model models.Payment) error {
+	return r.Database.Table("payments").WithContext(ctx).Create(&model).Error
+}
