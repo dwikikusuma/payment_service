@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/sirupsen/logrus"
 	"payment_service/cmd/service"
 	"payment_service/infra/log"
@@ -29,7 +30,27 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 	switch payload.Status {
 	case "PAID":
 		orderID := extractOrderID(payload.ExternalID)
-		err := uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, payload.Status)
+		// validate amount
+		amount, err := uc.PaymentService.CheckPaymentAmountByOrderID(ctx, orderID)
+		if err != nil {
+			log.Logger.WithFields(logrus.Fields{
+				"order_id":       orderID,
+				"status":         payload.Status,
+				"external_id":    payload.ExternalID,
+				"webhook_amount": payload.Amount,
+			})
+			return err
+		}
+
+		if amount != payload.Amount {
+			errStr := fmt.Sprintf("webhook amount missmatch: expected %.2f, got %.2f", amount, payload.Amount)
+			log.Logger.WithFields(logrus.Fields{
+				"payload": payload,
+			}).Error(errStr)
+			return errors.New(errStr)
+		}
+
+		err = uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, payload.Status)
 		if err != nil {
 			log.Logger.WithFields(logrus.Fields{
 				"external_id": payload.ExternalID,

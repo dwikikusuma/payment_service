@@ -37,7 +37,7 @@ func main() {
 	paymentPublisher := repository.NewKafkaEventPublisher(writer)
 	paymentService := service.NewPaymentService(paymentRepo, paymentPublisher)
 	paymentUseCase := usecase.NewPaymentUseCase(paymentService)
-	paymentHandler := handler.NewHandler(paymentUseCase)
+	paymentHandler := handler.NewHandler(paymentUseCase, cfg.PGAConfig.WebhookToken)
 
 	xenditRepository := repository.NewXenditClient(cfg.PGAConfig.ApiKey)
 	xenditService := service.NewXenditService(paymentRepo, xenditRepository)

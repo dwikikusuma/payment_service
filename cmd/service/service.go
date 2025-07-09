@@ -11,6 +11,7 @@ import (
 
 type PaymentService interface {
 	ProcessPaymentSuccess(ctx context.Context, orderId int64, status string) error
+	CheckPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
 }
 
 type paymentService struct {
@@ -29,6 +30,21 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 	statusID, err := constant.TranslateStatusByName(status)
 	if err != nil {
 		return err
+	}
+
+	isPaid, err := s.PaymentRepository.IsAlreadyPaid(ctx, orderId)
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderId,
+		}).Errorf("error occurred on s.PaymentRepository.IsAlreadyPaid(ctx, orderId): %s", err)
+		return err
+	}
+
+	if isPaid {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderId,
+		}).Infof("[skip-orderid] already paid %d", orderId)
+		return nil
 	}
 
 	err = s.PaymentRepository.WithTransaction(ctx, func(tx *gorm.DB) error {
@@ -63,4 +79,16 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 	}
 
 	return nil
+}
+
+func (s *paymentService) CheckPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error) {
+	amount, err := s.PaymentRepository.GetPaymentAmountByOrderID(ctx, orderID)
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderID,
+		}).Errorf("error occurred on CheckPaymentAmountByOrderID(ctx context.Context, orderID int64): %s", err)
+		return 0, err
+	}
+
+	return amount, nil
 }

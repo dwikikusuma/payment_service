@@ -11,6 +11,8 @@ type PaymentRepository interface {
 	UpdateStatus(ctx context.Context, tx *gorm.DB, orderId int64, status int64) error
 	WithTransaction(ctx context.Context, fn func(tx *gorm.DB) error) error
 	SavePayment(ctx context.Context, model models.Payment) error
+	IsAlreadyPaid(ctx context.Context, orderID int64) (bool, error)
+	GetPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
 }
 
 type paymentRepository struct {

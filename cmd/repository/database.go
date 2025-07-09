@@ -2,7 +2,9 @@ package repository
 
 import (
 	"context"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"payment_service/infra/log"
 	"payment_service/models"
 )
 
@@ -34,4 +36,26 @@ func (r *paymentRepository) WithTransaction(ctx context.Context, fn func(tx *gor
 
 func (r *paymentRepository) SavePayment(ctx context.Context, model models.Payment) error {
 	return r.Database.Table("payments").WithContext(ctx).Create(&model).Error
+}
+
+func (r *paymentRepository) IsAlreadyPaid(ctx context.Context, orderID int64) (bool, error) {
+	var result models.Payment
+	err := r.Database.Table("payments").WithContext(ctx).Where("order_id = ?", orderID).First(&result).Error
+	if err != nil {
+		return false, err
+	}
+	return result.Status == "PAID", nil
+}
+
+func (r *paymentRepository) GetPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error) {
+	var result models.Payment
+	err := r.Database.Table("payments").WithContext(ctx).Where("order_id = ?", orderID).First(&result).Error
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderID,
+		}).Errorf("error occurred on GetPaymentAmountByOrderID(ctx context.Context, orderID int64): %s", err)
+		return 0, err
+	}
+
+	return result.Amount, nil
 }
