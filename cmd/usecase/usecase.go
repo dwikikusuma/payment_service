@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"payment_service/cmd/service"
+	"payment_service/infra/constant"
 	"payment_service/infra/log"
 	"payment_service/models"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type PaymentUseCase interface {
@@ -44,6 +46,21 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 
 		if amount != payload.Amount {
 			errStr := fmt.Sprintf("webhook amount missmatch: expected %.2f, got %.2f", amount, payload.Amount)
+			paymentAnomaly := models.PaymentAnomaly{
+				OrderID:     orderID,
+				ExternalID:  payload.ExternalID,
+				AnomalyType: constant.AnomalyTypeInvalidAmount,
+				Notes:       errStr,
+				Status:      constant.PaymentAnomalyStatusNeedToCheck,
+				CreateTime:  time.Now(),
+			}
+
+			if err = uc.PaymentService.SaveAnomaly(ctx, paymentAnomaly); err != nil {
+				log.Logger.WithFields(logrus.Fields{
+					"payload":         payload,
+					"payment_anomaly": paymentAnomaly,
+				}).WithError(err)
+			}
 			log.Logger.WithFields(logrus.Fields{
 				"payload": payload,
 			}).Error(errStr)

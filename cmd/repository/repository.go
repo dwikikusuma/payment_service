@@ -13,6 +13,7 @@ type PaymentRepository interface {
 	SavePayment(ctx context.Context, model models.Payment) error
 	IsAlreadyPaid(ctx context.Context, orderID int64) (bool, error)
 	GetPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
+	SavePaymentAnomaly(ctx context.Context, param models.PaymentAnomaly) error
 }
 
 type paymentRepository struct {

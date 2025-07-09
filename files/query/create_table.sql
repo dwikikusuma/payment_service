@@ -13,6 +13,18 @@ CREATE TABLE IF NOT EXISTS payments (
     create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
 
+CREATE TABLE IF NOT EXISTS payment_anomalies (
+                                                 id SERIAL PRIMARY KEY,
+                                                 order_id BIGINT,
+                                                 external_id TEXT,
+                                                 anomaly_type INTEGER,
+                                                 notes TEXT,
+                                                 status INTEGER,
+                                                 create_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                                 update_time TIMESTAMP
+);
+
+
 INSERT INTO status (name) VALUES
                               ('pending'),
                               ('success'),

@@ -7,11 +7,13 @@ import (
 	"payment_service/cmd/repository"
 	"payment_service/infra/constant"
 	"payment_service/infra/log"
+	"payment_service/models"
 )
 
 type PaymentService interface {
 	ProcessPaymentSuccess(ctx context.Context, orderId int64, status string) error
 	CheckPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
+	SaveAnomaly(ctx context.Context, param models.PaymentAnomaly) error
 }
 
 type paymentService struct {
@@ -91,4 +93,15 @@ func (s *paymentService) CheckPaymentAmountByOrderID(ctx context.Context, orderI
 	}
 
 	return amount, nil
+}
+
+func (s *paymentService) SaveAnomaly(ctx context.Context, param models.PaymentAnomaly) error {
+	err := s.PaymentRepository.SavePaymentAnomaly(ctx, param)
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).Errorf("error occured on PaymentService.SaveAnomaly(ctx context.Context, param models.PaymentAnomaly) %v", err)
+		return err
+	}
+	return nil
 }

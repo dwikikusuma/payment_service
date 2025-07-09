@@ -59,3 +59,13 @@ func (r *paymentRepository) GetPaymentAmountByOrderID(ctx context.Context, order
 
 	return result.Amount, nil
 }
+
+func (r *paymentRepository) SavePaymentAnomaly(ctx context.Context, param models.PaymentAnomaly) error {
+	err := r.Database.Table("payment_anomalies").WithContext(ctx).Create(param).Error
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).Errorf("error occurred on SavePaymentAnomaly(ctx context.Context, param models.PaymentAnomaly) %v", err)
+	}
+	return nil
+}
