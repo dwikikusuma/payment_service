@@ -4,10 +4,16 @@ import (
 	"context"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"math"
 	"payment_service/cmd/repository"
 	"payment_service/infra/constant"
 	"payment_service/infra/log"
 	"payment_service/models"
+	"time"
+)
+
+const (
+	maxRetryPublish = 5
 )
 
 type PaymentService interface {
@@ -60,8 +66,28 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 			return err
 		}
 
-		err = s.Publisher.PublishPaymentSuccess(orderId)
+		// adding retry mechanism
+		err = retryPublishEvent(maxRetryPublish, func() error {
+			return s.Publisher.PublishPaymentSuccess(orderId)
+		})
+
 		if err != nil {
+			failedEvent := models.FailedEvents{
+				OrderID:    orderId,
+				FailedType: constant.FailedPublishEventPaymentSuccess,
+				Status:     constant.FailedPublishEventStatusNeedToCheck,
+				Notes:      err.Error(),
+				CreateTime: time.Now(),
+			}
+
+			// dead letter table
+			publishErr := s.PaymentRepository.SaveFailedPublishEvent(ctx, failedEvent)
+			if publishErr != nil {
+				log.Logger.WithFields(logrus.Fields{
+					"failed_param": failedEvent,
+				}).WithError(publishErr)
+			}
+
 			log.Logger.WithFields(logrus.Fields{
 				"order_id": orderId,
 				"err":      err.Error(),
@@ -104,4 +130,21 @@ func (s *paymentService) SaveAnomaly(ctx context.Context, param models.PaymentAn
 		return err
 	}
 	return nil
+}
+
+func retryPublishEvent(max int, fn func() error) error {
+	var err error
+
+	for i := range max {
+		err = fn()
+		if err == nil {
+			return nil
+		}
+
+		wait := time.Duration(math.Pow(2, float64(1))) * time.Second
+		log.Logger.Printf("retry: %d, Error: %s, retrying in %d secondss..", i+1, err, wait)
+		time.Sleep(wait)
+	}
+
+	return err
 }

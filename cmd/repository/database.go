@@ -69,3 +69,14 @@ func (r *paymentRepository) SavePaymentAnomaly(ctx context.Context, param models
 	}
 	return nil
 }
+
+func (r *paymentRepository) SaveFailedPublishEvent(ctx context.Context, param models.FailedEvents) error {
+	err := r.Database.Table("failed_events").WithContext(ctx).Create(param).Error
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).WithError(err)
+		return err
+	}
+	return nil
+}

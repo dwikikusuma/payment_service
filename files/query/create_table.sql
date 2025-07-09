@@ -24,6 +24,17 @@ CREATE TABLE IF NOT EXISTS payment_anomalies (
                                                  update_time TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS failed_events (
+                                             id SERIAL PRIMARY KEY,
+                                             order_id BIGINT,
+                                             external_id TEXT,
+                                             failed_type INTEGER,
+                                             notes TEXT,
+                                             status INTEGER,
+                                             create_time TIMESTAMP,
+                                             update_time TIMESTAMP
+);
+
 
 INSERT INTO status (name) VALUES
                               ('pending'),
