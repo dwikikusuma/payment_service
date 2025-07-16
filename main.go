@@ -43,6 +43,14 @@ func main() {
 	xenditService := service.NewXenditService(paymentRepo, xenditRepository)
 	xenditUseCase := usecase.NewXenditUseCase(xenditService)
 
+	schedulerService := service.SchedulerService{
+		PaymentService:    paymentService,
+		XenditClient:      xenditRepository,
+		PublisherService:  paymentPublisher,
+		PaymentRepository: paymentRepo,
+	}
+	schedulerService.StartCheckPendingInvoice()
+
 	internalKafka.StartKafkaConsumer(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicOrderCreated],
 		func(event models.OrderCreatedEvent) {
 			if err := xenditUseCase.CreateInvoice(context.Background(), event); err != nil {

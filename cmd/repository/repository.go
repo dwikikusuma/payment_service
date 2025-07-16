@@ -15,6 +15,7 @@ type PaymentRepository interface {
 	GetPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
 	SavePaymentAnomaly(ctx context.Context, param models.PaymentAnomaly) error
 	SaveFailedPublishEvent(ctx context.Context, param models.FailedEvents) error
+	GetPendingPayment(ctx context.Context) ([]models.Payment, error)
 }
 
 type paymentRepository struct {

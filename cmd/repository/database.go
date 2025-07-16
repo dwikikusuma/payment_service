@@ -80,3 +80,14 @@ func (r *paymentRepository) SaveFailedPublishEvent(ctx context.Context, param mo
 	}
 	return nil
 }
+
+func (r *paymentRepository) GetPendingPayment(ctx context.Context) ([]models.Payment, error) {
+	var result []models.Payment
+
+	err := r.Database.Table("payment").WithContext(ctx).Where("status = ?", "Pending").Find(&result).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
