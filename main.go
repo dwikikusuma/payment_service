@@ -49,7 +49,10 @@ func main() {
 		PublisherService:  paymentPublisher,
 		PaymentRepository: paymentRepo,
 	}
+
 	schedulerService.StartCheckPendingInvoice()
+	schedulerService.StartProcessPaymentRequest()
+	schedulerService.StartProcessFailedPaymentRequest()
 
 	internalKafka.StartKafkaConsumer(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicOrderCreated],
 		func(event models.OrderCreatedEvent) {

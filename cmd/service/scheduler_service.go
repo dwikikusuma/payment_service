@@ -114,3 +114,30 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 		}
 	}(context.Background())
 }
+
+func (s *SchedulerService) StartProcessFailedPaymentRequest() {
+	go func(ctx context.Context) {
+		for {
+			var failedPaymentReq []models.PaymentRequests
+			err := s.PaymentRepository.GetFailedPaymentRequest(ctx, &failedPaymentReq)
+			if err != nil {
+				fmt.Printf("s.PaymentRepository.GetFailedPaymentRequest got error: %s", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+
+			for _, req := range failedPaymentReq {
+				updatePendingErr := s.PaymentRepository.UpdatePendingPaymentRequest(ctx, req.ID)
+				if updatePendingErr != nil {
+					fmt.Printf("s.PaymentRepository.UpdatePendingPaymentRequest got error: %s", updatePendingErr)
+					updatedFailedErr := s.PaymentRepository.UpdateFailedPaymentRequest(ctx, req.OrderID, "Failed to update to pending")
+					if updatedFailedErr != nil {
+						fmt.Printf("s.PaymentRepository.UpdateFailedPaymentRequest got error: %s", updatedFailedErr)
+					}
+					continue
+				}
+			}
+			time.Sleep(5 * time.Second) // Sleep to avoid busy loop
+		}
+	}(context.Background())
+}
