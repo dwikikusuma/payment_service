@@ -91,3 +91,69 @@ func (r *paymentRepository) GetPendingPayment(ctx context.Context) ([]models.Pay
 
 	return result, nil
 }
+
+func (r *paymentRepository) SavePaymentRequest(ctx context.Context, param models.PaymentRequests) error {
+	err := r.Database.Table("payment_requests").WithContext(ctx).Create(models.PaymentRequests{
+		OrderID:    param.OrderID,
+		UserID:     param.UserID,
+		Amount:     param.Amount,
+		Status:     param.Status,
+		CreateTime: param.CreateTime,
+	}).Error
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).Errorf("error occurred on SavePaymentRequest(ctx context.Context, param models.PaymentRequests) %v", err)
+
+		return err
+	}
+
+	return nil
+}
+
+func (r *paymentRepository) GetPendingPaymentRequest(ctx context.Context, paymentRequests *[]models.PaymentRequests) error {
+	err := r.Database.Table("payment_requests").WithContext(ctx).Where("status = ?", "Pending").Find(paymentRequests).Error
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error occurred on GetPendingPaymentRequest(ctx context.Context, paymentRequests *[]models.PaymentRequests) %v", err)
+		return err
+	}
+	return nil
+}
+
+func (r *paymentRepository) UpdateFailedPaymentRequest(ctx context.Context, orderID int64, notes string) error {
+	err := r.Database.Table("payment_requests").WithContext(ctx).Where("id = ?", orderID).
+		Updates(map[string]interface{}{
+			"status":      "Failed",
+			"notes":       notes,
+			"retry_count": gorm.Expr("retry_count + 1"),
+			"update_time": gorm.Expr("CURRENT_TIMESTAMP"),
+		}).Error
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderID,
+			"notes":    notes,
+		}).Errorf("error occurred on UpdateFailedPaymentRequest(ctx context.Context, orderID int64, notes string) %v", err)
+		return err
+	}
+	return nil
+}
+
+func (r *paymentRepository) UpdateSuccessPaymentRequest(ctx context.Context, orderID int64) error {
+	err := r.Database.Table("payment_requests").WithContext(ctx).Where("id = ?", orderID).
+		Updates(map[string]interface{}{
+			"status":      "Success",
+			"update_time": gorm.Expr("CURRENT_TIMESTAMP"),
+		}).Error
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": orderID,
+		}).Errorf("error occurred on UpdateSuccessPaymentRequest(ctx context.Context, orderID int64) %v", err)
+		return err
+	}
+	return nil
+}

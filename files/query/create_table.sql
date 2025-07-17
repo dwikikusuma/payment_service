@@ -41,3 +41,16 @@ INSERT INTO status (name) VALUES
                               ('success'),
                               ('failed'),
                               ('refunded');
+
+
+CREATE TABLE payment_requests (
+                                  ID BIGSERIAL PRIMARY KEY,
+                                  order_id BIGINT NOT NULL,
+                                  user_id BIGINT NOT NULL,
+                                  amount NUMERIC,
+                                  status VARCHAR(255),
+                                  retry_count INT,
+                                  notes TEXT,
+                                  create_time TIMESTAMP,
+                                  update_time TIMESTAMP
+);
