@@ -6,6 +6,7 @@ type Config struct {
 	Redis       RedisConfig           `mapstructure:"redis" validate:"required"`
 	KafkaConfig KafkaConfig           `mapstructure:"kafka" validate:"required"`
 	PGAConfig   PaymentGateAwayConfig `mapstructure:"pga" validate:"required"`
+	Toggle      ToggleConfig          `mapstructure:"toggle" validate:"required"`
 }
 
 type AppConfig struct {
@@ -34,4 +35,8 @@ type KafkaConfig struct {
 type PaymentGateAwayConfig struct {
 	ApiKey       string `mapstructure:"api_key" validate:"required"`
 	WebhookToken string `mapstructure:"webhook_token" validate:"required"`
+}
+
+type ToggleConfig struct {
+	DisableCreatePaymentInvoiceDirectly bool `mapstructure:"disable_create_payment_invoice_directly" validate:"required"`
 }

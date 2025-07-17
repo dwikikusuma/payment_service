@@ -21,3 +21,6 @@ kafka:
 pga:
   api_key: "xnd_development_gJ7XYKLk8yCdFgIXmf6XDrNpqGGbJZrOGx0rY4wc25aCr3NhiULHRZZPKhtQc"
   webhook_token: "BGbj1zUFbv0QSEn2lTBKnpFi5ZkA6dDhvnLGf1TX9CLSGOws"
+
+toggle:
+  disable_create_payment_invoice_directly: true

@@ -53,12 +53,22 @@ func main() {
 
 	internalKafka.StartKafkaConsumer(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicOrderCreated],
 		func(event models.OrderCreatedEvent) {
-			if err := xenditUseCase.CreateInvoice(context.Background(), event); err != nil {
-				log.Logger.WithFields(logrus.Fields{
-					"message": "failed to handle order created event",
-					"err":     err.Error(),
-				}).Error("xenditUseCase.CreateInvoice(context.Background(), event)")
+			if cfg.Toggle.DisableCreatePaymentInvoiceDirectly {
+				if err := paymentUseCase.ProcessPaymentRequest(context.Background(), event); err != nil {
+					log.Logger.WithFields(logrus.Fields{
+						"message": "failed to handle order created event",
+						"err":     err.Error(),
+					}).Error("paymentUseCase.ProcessPaymentRequest(context.Background(), event)")
+				}
+			} else {
+				if err := xenditUseCase.CreateInvoice(context.Background(), event); err != nil {
+					log.Logger.WithFields(logrus.Fields{
+						"message": "failed to handle order created event",
+						"err":     err.Error(),
+					}).Error("xenditUseCase.CreateInvoice(context.Background(), event)")
+				}
 			}
+
 		})
 	router := gin.Default()
 	routes.SetupRoutes(router, paymentHandler, "my")
