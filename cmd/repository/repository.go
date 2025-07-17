@@ -70,6 +70,22 @@ type PaymentRepository interface {
 	// ctx: Context for managing request-scoped values.
 	// param: Payment request model containing request details.
 	SavePaymentRequest(ctx context.Context, param models.PaymentRequests) error
+
+	// UpdatePendingPaymentRequest updates a payment request as pending for a given payment request ID.
+	// ctx: Context for managing request-scoped values.
+	// paymentRequestID: ID of the payment request to update.
+	UpdatePendingPaymentRequest(ctx context.Context, paymentRequestID int64) error
+
+	// GetFailedPaymentRequest retrieves all failed payment requests.
+	// ctx: Context for managing request-scoped values.
+	// requests: Pointer to a slice of PaymentRequests models to populate with failed requests.
+	GetFailedPaymentRequest(ctx context.Context, requests *[]models.PaymentRequests) error
+
+	// GetPaymentInfoByOrderID retrieves payment information for a given order ID.
+	// ctx: Context for managing request-scoped values.
+	// orderID: ID of the order.
+	// Returns: A Payment model containing payment details and an error if any issues occur.
+	GetPaymentInfoByOrderID(ctx context.Context, orderID int64) (models.Payment, error)
 }
 
 // paymentRepository is the implementation of the PaymentRepository interface.

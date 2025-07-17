@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log"
 	"payment_service/cmd/repository"
 	"payment_service/models"
 	"time"
@@ -57,8 +58,26 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 			}
 
 			for _, req := range paymentReq {
+				log.Printf("Processing payment request for OrderID: %d, UserID: %d, Amount: %.2f", req.OrderID, req.UserID, req.Amount)
+				externalID := fmt.Sprintf("order-%d", req.OrderID)
+				paymentInfo, getPaymentErr := s.PaymentRepository.GetPaymentInfoByOrderID(ctx, req.OrderID)
+				if getPaymentErr != nil {
+					fmt.Printf("s.PaymentRepository.GetPaymentInfoByOrderID got error: %s", getPaymentErr)
+					continue
+				}
+
+				if paymentInfo.ID != 0 {
+					fmt.Printf("Payment already exists for OrderID: %d, skipping invoice creation", req.OrderID)
+					updateErr := s.PaymentRepository.UpdateSuccessPaymentRequest(ctx, req.OrderID)
+					if updateErr != nil {
+						fmt.Printf("s.PaymentRepository.UpdateSuccessPaymentRequest got error: %s", updateErr)
+						continue
+					}
+					continue
+				}
+
 				_, err = s.XenditClient.CrateInvoice(ctx, models.XenditInvoiceRequest{
-					ExternalID:  fmt.Sprintf("order-%d", req.OrderID),
+					ExternalID:  externalID,
 					Amount:      req.Amount,
 					Description: fmt.Sprintf("Payment for order %d", req.OrderID),
 					PayerEmail:  fmt.Sprintf("user%d@test.com", req.UserID),
@@ -71,7 +90,27 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 					}
 					continue
 				}
+
+				updateErr := s.PaymentRepository.UpdateSuccessPaymentRequest(ctx, req.OrderID)
+				if updateErr != nil {
+					fmt.Printf("s.PaymentRepository.UpdateSuccessPaymentRequest got error: %s", updateErr)
+					continue
+				}
+
+				savePaymentErr := s.PaymentRepository.SavePayment(ctx, models.Payment{
+					OrderID:    req.OrderID,
+					UserID:     req.UserID,
+					Amount:     req.Amount,
+					ExternalID: externalID,
+					Status:     "Pending",
+					CreateTime: time.Now(),
+				})
+				if savePaymentErr != nil {
+					fmt.Printf("s.PaymentRepository.SavePayment got error: %s", savePaymentErr)
+					continue
+				}
 			}
+			time.Sleep(5 * time.Second) // Sleep to avoid busy loop
 		}
 	}(context.Background())
 }
