@@ -13,20 +13,43 @@ import (
 )
 
 const (
+	// maxRetryPublish defines the maximum number of retries for publishing events.
 	maxRetryPublish = 5
 )
 
+// PaymentService defines the interface for payment-related operations.
 type PaymentService interface {
+	// ProcessPaymentSuccess processes a successful payment for a given order ID.
+	// ctx: Context for managing request-scoped values.
+	// orderId: ID of the order.
+	// status: Status of the payment.
 	ProcessPaymentSuccess(ctx context.Context, orderId int64, status string) error
+
+	// CheckPaymentAmountByOrderID retrieves the payment amount for a given order ID.
+	// ctx: Context for managing request-scoped values.
+	// orderID: ID of the order.
 	CheckPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error)
+
+	// SaveAnomaly saves a payment anomaly record to the database.
+	// ctx: Context for managing request-scoped values.
+	// param: Payment anomaly model containing anomaly details.
 	SaveAnomaly(ctx context.Context, param models.PaymentAnomaly) error
+
+	// SavePaymentRequest saves a payment request record to the database.
+	// ctx: Context for managing request-scoped values.
+	// param: Payment request model containing request details.
+	SavePaymentRequest(ctx context.Context, param models.PaymentRequests) error
 }
 
+// paymentService is the implementation of the PaymentService interface.
 type paymentService struct {
-	PaymentRepository repository.PaymentRepository
-	Publisher         repository.PaymentEventPublisher
+	PaymentRepository repository.PaymentRepository     // Repository for payment-related database operations.
+	Publisher         repository.PaymentEventPublisher // Publisher for payment-related events.
 }
 
+// NewPaymentService creates a new instance of paymentService.
+// paymentRepo: Repository for payment-related database operations.
+// publisher: Publisher for payment-related events.
 func NewPaymentService(paymentRepo repository.PaymentRepository, publisher repository.PaymentEventPublisher) PaymentService {
 	return &paymentService{
 		PaymentRepository: paymentRepo,
@@ -34,6 +57,11 @@ func NewPaymentService(paymentRepo repository.PaymentRepository, publisher repos
 	}
 }
 
+// ProcessPaymentSuccess processes a successful payment for a given order ID.
+// It updates the payment status, checks if the payment is already made, and publishes a success event.
+// ctx: Context for managing request-scoped values.
+// orderId: ID of the order.
+// status: Status of the payment.
 func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int64, status string) error {
 	statusID, err := constant.TranslateStatusByName(status)
 	if err != nil {
@@ -109,6 +137,9 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 	return nil
 }
 
+// CheckPaymentAmountByOrderID retrieves the payment amount for a given order ID.
+// ctx: Context for managing request-scoped values.
+// orderID: ID of the order.
 func (s *paymentService) CheckPaymentAmountByOrderID(ctx context.Context, orderID int64) (float64, error) {
 	amount, err := s.PaymentRepository.GetPaymentAmountByOrderID(ctx, orderID)
 	if err != nil {
@@ -121,6 +152,9 @@ func (s *paymentService) CheckPaymentAmountByOrderID(ctx context.Context, orderI
 	return amount, nil
 }
 
+// SaveAnomaly saves a payment anomaly record to the database.
+// ctx: Context for managing request-scoped values.
+// param: Payment anomaly model containing anomaly details.
 func (s *paymentService) SaveAnomaly(ctx context.Context, param models.PaymentAnomaly) error {
 	err := s.PaymentRepository.SavePaymentAnomaly(ctx, param)
 	if err != nil {
@@ -132,6 +166,9 @@ func (s *paymentService) SaveAnomaly(ctx context.Context, param models.PaymentAn
 	return nil
 }
 
+// retryPublishEvent retries publishing an event up to a maximum number of attempts.
+// max: Maximum number of retries.
+// fn: Function to execute for publishing the event.
 func retryPublishEvent(max int, fn func() error) error {
 	var err error
 
@@ -147,4 +184,14 @@ func retryPublishEvent(max int, fn func() error) error {
 	}
 
 	return err
+}
+
+func (s *paymentService) SavePaymentRequest(ctx context.Context, param models.PaymentRequests) error {
+	err := s.PaymentRepository.SavePaymentRequest(ctx, param)
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).Errorf("error occurred on PaymentService.SavePaymentRequest(ctx context.Context, param models.PaymentRequests) %v", err)
+	}
+	return nil
 }

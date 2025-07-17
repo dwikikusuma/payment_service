@@ -14,25 +14,41 @@ import (
 	"time"
 )
 
+// PaymentUseCase defines the interface for payment-related use case operations.
 type PaymentUseCase interface {
+	// ProcessPaymentWebhook processes a payment webhook payload.
+	// ctx: Context for managing request-scoped values.
+	// payload: XenditWebhookPayload containing webhook data.
 	ProcessPaymentWebhook(ctx context.Context, payload models.XenditWebhookPayload) error
+
+	// ProcessPaymentRequest processes a payment request.
+	// ctx: Context for managing request-scoped values.
+	// payload: OrderCreatedEvent containing details of the order.
+	ProcessPaymentRequest(ctx context.Context, payload models.OrderCreatedEvent) error
 }
 
+// paymentUseCase is the implementation of the PaymentUseCase interface.
 type paymentUseCase struct {
-	PaymentService service.PaymentService
+	PaymentService service.PaymentService // Service for handling payment-related operations.
 }
 
+// NewPaymentUseCase creates a new instance of paymentUseCase.
+// paymentService: Service for handling payment-related operations.
 func NewPaymentUseCase(paymentService service.PaymentService) PaymentUseCase {
 	return &paymentUseCase{
 		PaymentService: paymentService,
 	}
 }
 
+// ProcessPaymentWebhook processes a payment webhook payload.
+// It validates the payment amount, handles anomalies, and updates the payment status.
+// ctx: Context for managing request-scoped values.
+// payload: XenditWebhookPayload containing webhook data.
 func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload models.XenditWebhookPayload) error {
 	switch payload.Status {
 	case "PAID":
 		orderID := extractOrderID(payload.ExternalID)
-		// validate amount
+		// Validate the payment amount.
 		amount, err := uc.PaymentService.CheckPaymentAmountByOrderID(ctx, orderID)
 		if err != nil {
 			log.Logger.WithFields(logrus.Fields{
@@ -44,6 +60,7 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 			return err
 		}
 
+		// Check for amount mismatch and handle anomalies.
 		if amount != payload.Amount {
 			errStr := fmt.Sprintf("webhook amount missmatch: expected %.2f, got %.2f", amount, payload.Amount)
 			paymentAnomaly := models.PaymentAnomaly{
@@ -67,6 +84,7 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 			return errors.New(errStr)
 		}
 
+		// Process the payment success.
 		err = uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, payload.Status)
 		if err != nil {
 			log.Logger.WithFields(logrus.Fields{
@@ -75,6 +93,7 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 			}).Errorf("uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, payload.Status)")
 		}
 	default:
+		// Handle invalid status.
 		log.Logger.WithFields(logrus.Fields{
 			"external_id": payload.ExternalID,
 			"status":      payload.Status,
@@ -84,6 +103,30 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 	return nil
 }
 
+func (uc *paymentUseCase) ProcessPaymentRequest(ctx context.Context, payload models.OrderCreatedEvent) error {
+	err := uc.PaymentService.SavePaymentRequest(ctx, models.PaymentRequests{
+		OrderID:    payload.OrderID,
+		Amount:     payload.Amount,
+		UserID:     payload.UserID,
+		Status:     "PENDING",
+		CreateTime: time.Now(),
+	})
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"order_id": payload.OrderID,
+			"amount":   payload.Amount,
+			"user_id":  payload.UserID,
+		}).Errorf("error occurred on ProcessPaymentRequest: %v", err)
+		return err
+	}
+
+	return nil
+}
+
+// extractOrderID extracts the order ID from the external ID.
+// externalID: The external ID string.
+// Returns the extracted order ID as an int64.
 func extractOrderID(externalID string) int64 {
 	orderIDStr := strings.TrimPrefix(externalID, "order-")
 	orderID, err := strconv.ParseInt(orderIDStr, 64, 10)
