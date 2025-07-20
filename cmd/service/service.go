@@ -39,6 +39,12 @@ type PaymentService interface {
 	// ctx: Context for managing request-scoped values.
 	// param: Payment request model containing request details.
 	SavePaymentRequest(ctx context.Context, param models.PaymentRequests) error
+
+	// GetPaymentInfoByOrderID retrieves payment information for a given order ID.
+	// ctx: Context for managing request-scoped values.
+	// orderID: ID of the order.
+	// Returns the payment model containing payment details.
+	GetPaymentInfoByOrderID(ctx context.Context, orderID int64) (models.Payment, error)
 }
 
 // paymentService is the implementation of the PaymentService interface.
@@ -194,4 +200,13 @@ func (s *paymentService) SavePaymentRequest(ctx context.Context, param models.Pa
 		}).Errorf("error occurred on PaymentService.SavePaymentRequest(ctx context.Context, param models.PaymentRequests) %v", err)
 	}
 	return nil
+}
+
+func (s *paymentService) GetPaymentInfoByOrderID(ctx context.Context, orderID int64) (models.Payment, error) {
+	paymentInfo, err := s.PaymentRepository.GetPaymentInfoByOrderID(ctx, orderID)
+	if err != nil {
+		return models.Payment{}, err
+	}
+
+	return paymentInfo, nil
 }

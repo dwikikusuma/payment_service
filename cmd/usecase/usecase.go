@@ -9,6 +9,7 @@ import (
 	"payment_service/infra/constant"
 	"payment_service/infra/log"
 	"payment_service/models"
+	"payment_service/pdf"
 	"strconv"
 	"strings"
 	"time"
@@ -25,6 +26,11 @@ type PaymentUseCase interface {
 	// ctx: Context for managing request-scoped values.
 	// payload: OrderCreatedEvent containing details of the order.
 	ProcessPaymentRequest(ctx context.Context, payload models.OrderCreatedEvent) error
+
+	// DownloadPDFInvoice generates a PDF invoice for the given order ID.
+	// ctx: Context for managing request-scoped values.
+	// orderID: The ID of the order for which the invoice is generated.
+	DownloadPDFInvoice(ctx context.Context, orderID int64) (string, error)
 }
 
 // paymentUseCase is the implementation of the PaymentUseCase interface.
@@ -135,4 +141,23 @@ func extractOrderID(externalID string) int64 {
 	}
 
 	return orderID
+}
+
+// DownloadPDFInvoice generates a PDF invoice for the given order ID.
+// ctx: Context for managing request-scoped values.
+// orderID: The ID of the order for which the invoice is generated.
+// Returns the file path of the generated PDF invoice or an error if the operation fails.
+func (uc *paymentUseCase) DownloadPDFInvoice(ctx context.Context, orderID int64) (string, error) {
+	paymentDetail, err := uc.PaymentService.GetPaymentInfoByOrderID(ctx, orderID)
+	if err != nil {
+		return "", err
+	}
+
+	filePath := fmt.Sprintf("/fcproject/invoice_%d", orderID)
+	err = pdf.GenerateInvoicePDF(paymentDetail, filePath)
+	if err != nil {
+		return "", err
+	}
+
+	return filePath, nil
 }
