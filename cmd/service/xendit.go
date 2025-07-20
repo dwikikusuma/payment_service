@@ -35,7 +35,7 @@ func (s *xenditService) CreateInvoice(ctx context.Context, param models.OrderCre
 		PayerEmail:  "test@test.com",
 	}
 
-	_, err := s.XenditClient.CrateInvoice(ctx, xenditReq)
+	invoiceDetail, err := s.XenditClient.CrateInvoice(ctx, xenditReq)
 	if err != nil {
 		log.Logger.WithFields(logrus.Fields{
 			"message": "error creating invoice to xendit",
@@ -46,11 +46,12 @@ func (s *xenditService) CreateInvoice(ctx context.Context, param models.OrderCre
 	}
 
 	paymentModel := models.Payment{
-		OrderID:    param.OrderID,
-		UserID:     param.UserID,
-		ExternalID: externalID,
-		Amount:     param.Amount,
-		Status:     "PENDING",
+		OrderID:     param.OrderID,
+		UserID:      param.UserID,
+		ExternalID:  externalID,
+		Amount:      param.Amount,
+		Status:      "PENDING",
+		ExpiredTime: invoiceDetail.ExpiryDate,
 	}
 
 	if err = s.Database.SavePayment(ctx, paymentModel); err != nil {

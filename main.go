@@ -53,6 +53,7 @@ func main() {
 	schedulerService.StartCheckPendingInvoice()
 	schedulerService.StartProcessPaymentRequest()
 	schedulerService.StartProcessFailedPaymentRequest()
+	schedulerService.StartSweepingExpiredPendingPayments()
 
 	internalKafka.StartKafkaConsumer(cfg.KafkaConfig.Broker, cfg.KafkaConfig.KafkaTopics[constant.KafkaTopicOrderCreated],
 		func(event models.OrderCreatedEvent) {

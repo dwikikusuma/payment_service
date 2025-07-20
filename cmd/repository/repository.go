@@ -86,6 +86,16 @@ type PaymentRepository interface {
 	// orderID: ID of the order.
 	// Returns: A Payment model containing payment details and an error if any issues occur.
 	GetPaymentInfoByOrderID(ctx context.Context, orderID int64) (models.Payment, error)
+
+	// MarkExpiredPayments marks payments as expired for a given payment ID.
+	// ctx: Context for managing request-scoped values.
+	// paymentId: ID of the payment to mark as expired.
+	MarkExpiredPayments(ctx context.Context, paymentId int64) error
+
+	// GetExpiredPendingPayments retrieves all expired payments.
+	// ctx: Context for managing request-scoped values.
+	// Returns: A slice of Payment models containing expired payments and an error if any issues occur.
+	GetExpiredPendingPayments(ctx context.Context) ([]models.Payment, error)
 }
 
 // paymentRepository is the implementation of the PaymentRepository interface.

@@ -76,7 +76,7 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 					continue
 				}
 
-				_, err = s.XenditClient.CrateInvoice(ctx, models.XenditInvoiceRequest{
+				invoiceDetail, err := s.XenditClient.CrateInvoice(ctx, models.XenditInvoiceRequest{
 					ExternalID:  externalID,
 					Amount:      req.Amount,
 					Description: fmt.Sprintf("Payment for order %d", req.OrderID),
@@ -98,12 +98,13 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 				}
 
 				savePaymentErr := s.PaymentRepository.SavePayment(ctx, models.Payment{
-					OrderID:    req.OrderID,
-					UserID:     req.UserID,
-					Amount:     req.Amount,
-					ExternalID: externalID,
-					Status:     "Pending",
-					CreateTime: time.Now(),
+					OrderID:     req.OrderID,
+					UserID:      req.UserID,
+					Amount:      req.Amount,
+					ExternalID:  externalID,
+					Status:      "Pending",
+					CreateTime:  time.Now(),
+					ExpiredTime: invoiceDetail.ExpiryDate,
 				})
 				if savePaymentErr != nil {
 					fmt.Printf("s.PaymentRepository.SavePayment got error: %s", savePaymentErr)
@@ -138,6 +139,30 @@ func (s *SchedulerService) StartProcessFailedPaymentRequest() {
 				}
 			}
 			time.Sleep(5 * time.Second) // Sleep to avoid busy loop
+		}
+	}(context.Background())
+}
+
+func (s *SchedulerService) StartSweepingExpiredPendingPayments() {
+	go func(ctx context.Context) {
+		for {
+			fmt.Println("Checking for expired pending payments...")
+			pendingPayments, err := s.PaymentRepository.GetExpiredPendingPayments(ctx)
+			if err != nil {
+				fmt.Printf("s.PaymentRepository.GetExpiredPendingPayments got error: %s", err)
+				time.Sleep(5 * time.Second)
+				continue
+			}
+			for _, pendingPayment := range pendingPayments {
+				fmt.Printf("[updating] Processing expired payment for OrderID: %d\n", pendingPayment.OrderID)
+				updatingErr := s.PaymentRepository.MarkExpiredPayments(ctx, pendingPayment.ID)
+				if updatingErr != nil {
+					fmt.Printf("s.PaymentRepository.MarkExpiredPayments got error: %s", updatingErr)
+				} else {
+					fmt.Printf("[updated] Successfully marked payment as expired for OrderID: %d\n", pendingPayment.OrderID)
+				}
+			}
+			time.Sleep(10 * time.Second) // Sleep to avoid busy loop
 		}
 	}(context.Background())
 }

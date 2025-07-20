@@ -204,3 +204,37 @@ func (r *paymentRepository) GetPaymentInfoByOrderID(ctx context.Context, orderID
 	}
 	return result, nil
 }
+
+func (r *paymentRepository) GetExpiredPendingPayments(ctx context.Context) ([]models.Payment, error) {
+	var result []models.Payment
+	err := r.Database.Table("payments").WithContext(ctx).
+		Where("status = ?", "Pending").
+		Where("expired_time < ?", gorm.Expr("CURRENT_TIMESTAMP")).
+		Find(&result).Error
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"error": err.Error(),
+		}).Errorf("error occurred on GetExpiredPendingPayments(ctx context.Context): %s", err)
+		return nil, err
+	}
+	return result, nil
+}
+
+func (r *paymentRepository) MarkExpiredPayments(ctx context.Context, paymentId int64) error {
+	err := r.Database.WithContext(ctx).
+		Table("payments").
+		Where("id = ?", paymentId).
+		Updates(map[string]interface{}{
+			"status":      "Expired",
+			"update_time": gorm.Expr("CURRENT_TIMESTAMP"),
+		}).Error
+
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"payment_id": paymentId,
+		}).Errorf("error occurred on MarkExpiredPayments(ctx context.Context, paymentId int64): %s", err)
+		return err
+	}
+	return nil
+}

@@ -54,3 +54,8 @@ CREATE TABLE payment_requests (
                                   create_time TIMESTAMP,
                                   update_time TIMESTAMP
 );
+
+alter table payments add column status varchar(25);
+alter table payments add column expired_time TIMESTAMP;
+alter table payments add column update_time TIMESTAMP;
+alter table payment_requests add column expired_date TIMESTAMP;
