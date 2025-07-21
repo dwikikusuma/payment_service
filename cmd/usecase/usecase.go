@@ -91,7 +91,7 @@ func (uc *paymentUseCase) ProcessPaymentWebhook(ctx context.Context, payload mod
 		}
 
 		// Process the payment success.
-		err = uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, payload.Status)
+		err = uc.PaymentService.ProcessPaymentSuccess(ctx, orderID, "PAID")
 		if err != nil {
 			log.Logger.WithFields(logrus.Fields{
 				"external_id": payload.ExternalID,

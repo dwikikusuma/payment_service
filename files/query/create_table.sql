@@ -59,3 +59,14 @@ alter table payments add column status varchar(25);
 alter table payments add column expired_time TIMESTAMP;
 alter table payments add column update_time TIMESTAMP;
 alter table payment_requests add column expired_date TIMESTAMP;
+
+CREATE TABLE payment_audit_logs (
+                                    id BIGSERIAL PRIMARY KEY,
+                                    order_id BIGINT,
+                                    payment_id BIGINT,
+                                    user_id BIGINT,
+                                    external_id TEXT,
+                                    event TEXT,
+                                    actor TEXT,
+                                    create_time TIMESTAMP
+);

@@ -76,12 +76,26 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 					continue
 				}
 
-				invoiceDetail, err := s.XenditClient.CrateInvoice(ctx, models.XenditInvoiceRequest{
+				xenditInvoiceRequest := models.XenditInvoiceRequest{
 					ExternalID:  externalID,
 					Amount:      req.Amount,
 					Description: fmt.Sprintf("Payment for order %d", req.OrderID),
 					PayerEmail:  fmt.Sprintf("user%d@test.com", req.UserID),
+				}
+				invoiceDetail, err := s.XenditClient.CrateInvoice(ctx, xenditInvoiceRequest)
+
+				errAuditLog := s.PaymentRepository.InsertAuditLog(ctx, models.PaymentAuditLog{
+					OrderID:    paymentInfo.OrderID,
+					UserID:     paymentInfo.UserID,
+					ExternalID: externalID,
+					PaymentID:  paymentInfo.ID,
+					Event:      "CreateInvoice",
+					Actor:      "Xendit SchedulerService",
+					CreateTime: time.Now(),
 				})
+				if errAuditLog != nil {
+					fmt.Printf("s.PaymentRepository.InsertAuditLog got error: %s", errAuditLog)
+				}
 
 				if err != nil {
 					errSavedFailed := s.PaymentRepository.UpdateFailedPaymentRequest(ctx, req.OrderID, err.Error())

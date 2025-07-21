@@ -8,7 +8,7 @@ import (
 	"payment_service/models"
 )
 
-func (r *paymentRepository) UpdateStatus(ctx context.Context, tx *gorm.DB, orderId int64, status int64) error {
+func (r *paymentRepository) UpdateStatus(ctx context.Context, tx *gorm.DB, orderId int64, status string) error {
 	return tx.
 		WithContext(ctx).
 		Model(models.Payment{}).
@@ -234,6 +234,17 @@ func (r *paymentRepository) MarkExpiredPayments(ctx context.Context, paymentId i
 		log.Logger.WithFields(logrus.Fields{
 			"payment_id": paymentId,
 		}).Errorf("error occurred on MarkExpiredPayments(ctx context.Context, paymentId int64): %s", err)
+		return err
+	}
+	return nil
+}
+
+func (r *paymentRepository) InsertAuditLog(ctx context.Context, param models.PaymentAuditLog) error {
+	err := r.Database.Table("payment_audit_logs").WithContext(ctx).Create(&param).Error
+	if err != nil {
+		log.Logger.WithFields(logrus.Fields{
+			"param": param,
+		}).Errorf("error occurred on InsertAuditLog(ctx context.Context, param models.PaymentAuditLog) %v", err)
 		return err
 	}
 	return nil

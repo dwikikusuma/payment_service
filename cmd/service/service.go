@@ -69,11 +69,6 @@ func NewPaymentService(paymentRepo repository.PaymentRepository, publisher repos
 // orderId: ID of the order.
 // status: Status of the payment.
 func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int64, status string) error {
-	statusID, err := constant.TranslateStatusByName(status)
-	if err != nil {
-		return err
-	}
-
 	isPaid, err := s.PaymentRepository.IsAlreadyPaid(ctx, orderId)
 	if err != nil {
 		log.Logger.WithFields(logrus.Fields{
@@ -90,10 +85,10 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 	}
 
 	err = s.PaymentRepository.WithTransaction(ctx, func(tx *gorm.DB) error {
-		err = s.PaymentRepository.UpdateStatus(ctx, tx, orderId, statusID)
+		err = s.PaymentRepository.UpdateStatus(ctx, tx, orderId, status)
 		if err != nil {
 			log.Logger.WithFields(logrus.Fields{
-				"status_id": statusID,
+				"status_id": status,
 				"order_id":  orderId,
 				"err":       err.Error(),
 			}).Errorf("s.PaymentRepository.UpdateStatus(ctx, orderId, statusID)")
@@ -102,6 +97,18 @@ func (s *paymentService) ProcessPaymentSuccess(ctx context.Context, orderId int6
 
 		// adding retry mechanism
 		err = retryPublishEvent(maxRetryPublish, func() error {
+			insertAuditErr := s.PaymentRepository.InsertAuditLog(ctx, models.PaymentAuditLog{
+				OrderID:    orderId,
+				Event:      "Publish Payment Success",
+				Actor:      "Payment Service",
+				CreateTime: time.Now(),
+			})
+			if insertAuditErr != nil {
+				log.Logger.WithFields(logrus.Fields{
+					"order_id": orderId,
+					"err":      insertAuditErr.Error(),
+				}).Errorf("s.PaymentRepository.InsertAuditLog(ctx, models.PaymentAuditLog)")
+			}
 			return s.Publisher.PublishPaymentSuccess(orderId)
 		})
 

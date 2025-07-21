@@ -14,7 +14,7 @@ type PaymentRepository interface {
 	// tx: Database transaction object.
 	// orderId: ID of the order.
 	// status: New status to be updated.
-	UpdateStatus(ctx context.Context, tx *gorm.DB, orderId int64, status int64) error
+	UpdateStatus(ctx context.Context, tx *gorm.DB, orderId int64, status string) error
 
 	// WithTransaction executes a function within a database transaction.
 	// ctx: Context for managing request-scoped values.
@@ -96,6 +96,11 @@ type PaymentRepository interface {
 	// ctx: Context for managing request-scoped values.
 	// Returns: A slice of Payment models containing expired payments and an error if any issues occur.
 	GetExpiredPendingPayments(ctx context.Context) ([]models.Payment, error)
+
+	// InsertAuditLog inserts an audit log entry into the database.
+	// ctx: Context for managing request-scoped values.
+	// param: PaymentAuditLog model containing audit log details.
+	InsertAuditLog(ctx context.Context, param models.PaymentAuditLog) error
 }
 
 // paymentRepository is the implementation of the PaymentRepository interface.
