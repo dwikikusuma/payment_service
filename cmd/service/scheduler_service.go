@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"payment_service/cmd/repository"
+	"payment_service/internalGrpc"
 	"payment_service/models"
 	"time"
 )
@@ -14,6 +15,7 @@ type SchedulerService struct {
 	XenditClient      repository.XenditClient
 	PublisherService  repository.PaymentEventPublisher
 	PaymentService    PaymentService
+	UserClient        internalGrpc.UserClient
 }
 
 func (s *SchedulerService) StartCheckPendingInvoice() {
@@ -76,11 +78,21 @@ func (s *SchedulerService) StartProcessPaymentRequest() {
 					continue
 				}
 
+				userInfo, err := s.UserClient.GetUserByUserId(ctx, req.UserID)
+				if err != nil {
+					fmt.Printf("s.UserClient.GetUserByUserId got error: %s", err)
+					errSavedFailed := s.PaymentRepository.UpdateFailedPaymentRequest(ctx, req.OrderID, err.Error())
+					if errSavedFailed != nil {
+						fmt.Printf("s.PaymentRepository.UpdateFailedPaymentRequest got error: %s", errSavedFailed)
+					}
+					continue
+				}
+
 				xenditInvoiceRequest := models.XenditInvoiceRequest{
 					ExternalID:  externalID,
 					Amount:      req.Amount,
 					Description: fmt.Sprintf("Payment for order %d", req.OrderID),
-					PayerEmail:  fmt.Sprintf("user%d@test.com", req.UserID),
+					PayerEmail:  userInfo.Email,
 				}
 				invoiceDetail, err := s.XenditClient.CrateInvoice(ctx, xenditInvoiceRequest)
 

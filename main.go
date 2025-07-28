@@ -13,6 +13,7 @@ import (
 	"payment_service/config"
 	"payment_service/infra/constant"
 	"payment_service/infra/log"
+	"payment_service/internalGrpc"
 	internalKafka "payment_service/kafka"
 	"payment_service/models"
 	"payment_service/routes"
@@ -33,6 +34,8 @@ func main() {
 
 	constant.MapStatusFromDB(db)
 
+	userClient := internalGrpc.NewUserClient()
+
 	paymentRepo := repository.NewPaymentRepository(db, redis)
 	paymentPublisher := repository.NewKafkaEventPublisher(writer)
 	paymentService := service.NewPaymentService(paymentRepo, paymentPublisher)
@@ -40,7 +43,7 @@ func main() {
 	paymentHandler := handler.NewHandler(paymentUseCase, cfg.PGAConfig.WebhookToken)
 
 	xenditRepository := repository.NewXenditClient(cfg.PGAConfig.ApiKey)
-	xenditService := service.NewXenditService(paymentRepo, xenditRepository)
+	xenditService := service.NewXenditService(paymentRepo, xenditRepository, *userClient)
 	xenditUseCase := usecase.NewXenditUseCase(xenditService)
 
 	schedulerService := service.SchedulerService{
@@ -48,6 +51,7 @@ func main() {
 		XenditClient:      xenditRepository,
 		PublisherService:  paymentPublisher,
 		PaymentRepository: paymentRepo,
+		UserClient:        *userClient,
 	}
 
 	schedulerService.StartCheckPendingInvoice()
